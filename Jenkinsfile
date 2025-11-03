@@ -2,69 +2,54 @@ pipeline {
     agent any
 
     environment {
-        GITHUB_TOKEN = credentials('github-token')  // must exist in Jenkins credentials
+        APP_NAME = "python-ci-app"
+        PYTHON = "python3"
         VENV_DIR = ".venv"
-        HOST = "0.0.0.0"
-        PORT = "5000"
-        APP_MODULE = "app:app"  
+        GITHUB_TOKEN = credentials('github-token') // Jenkins credential ID
     }
 
     stages {
 
         stage('Checkout') {
             steps {
-                git branch: 'main',
+                git branch: 'main', 
                     url: 'https://github.com/Aissam234/Jenkins-CI-CD.git',
                     credentialsId: 'github-token'
             }
         }
 
-        stage('Setup Virtual Environment') {
+        stage('Setup Python Environment') {
             steps {
+                echo 'Creating and activating virtual environment...'
                 sh '''
-                python3 -m venv ${VENV_DIR}
-                source ${VENV_DIR}/bin/activate
-                python -m pip install --upgrade pip
-                pip install -r requirements.txt
+                    set -e
+                    ${PYTHON} -m venv ${VENV_DIR}
+                    . ${VENV_DIR}/bin/activate
+                    pip install --upgrade pip
+                    pip install -r requirements.txt
                 '''
             }
         }
 
         stage('Run Tests') {
-            when {
-                not {
-                    changeset "README.md"
-                }
-            }
-            parallel {
-                stage('Test File 1') {
-                    steps {
-                        sh '''
-                        source ${VENV_DIR}/bin/activate
-                        python -m pytest test_app.py -v
-                        '''
-                    }
-                }
-                stage('Test File 2') {
-                    steps {
-                        sh '''
-                        source ${VENV_DIR}/bin/activate
-                        python -m pytest test_app_2.py -v
-                        '''
-                    }
-                }
+            steps {
+                echo 'Running unit tests...'
+                sh '''
+                    set -e
+                    . ${VENV_DIR}/bin/activate
+                    pytest --maxfail=1 --disable-warnings -q || exit 1
+                '''
             }
         }
 
         stage('Deploy (Local with Gunicorn)') {
             steps {
-                echo '🚀 Starting Flask app locally using Gunicorn...'
+                echo 'Starting application with Gunicorn...'
                 sh '''
-                #!/bin/bash
-                source ${VENV_DIR}/bin/activate
-                nohup gunicorn --bind ${HOST}:${PORT} ${APP_MODULE} \
-                    --pid gunicorn.pid > gunicorn.log 2>&1 &
-                echo "✅ Gunicorn started on http://${HOST}:${PORT}"
+                    set -e
+                    . ${VENV_DIR}/bin/activate
+                    nohup gunicorn app:app --bind 0.0.0.0:8000 &
+                    echo "App is running on http://localhost:8000"
                 '''
             }
         }
@@ -72,34 +57,20 @@ pipeline {
 
     post {
         success {
+            echo '✅ Build and deployment successful!'
             emailext(
-                to: "EMAIL_TO_PLACEHOLDER",
-                from: "EMAIL_FROM_PLACEHOLDER",
-                replyTo: "EMAIL_REPLY_PLACEHOLDER",
-                subject: "✅ SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                mimeType: 'text/html',
-                body: """\
-                <p>Good news!</p>
-                <p>Build <b>${env.JOB_NAME} #${env.BUILD_NUMBER}</b> succeeded.</p>
-                <p>Check details: <a href="${env.BUILD_URL}">${env.BUILD_URL}</a></p>
-                """
+                to: 'EMAIL_TO_PLACEHOLDER',
+                subject: "✅ SUCCESS: ${APP_NAME} Build #${BUILD_NUMBER}",
+                body: "Good job! The pipeline for ${APP_NAME} completed successfully."
             )
         }
-
         failure {
+            echo '❌ Build failed!'
             emailext(
-                to: "EMAIL_TO_PLACEHOLDER",
-                from: "EMAIL_FROM_PLACEHOLDER",
-                replyTo: "EMAIL_REPLY_PLACEHOLDER",
-                subject: "❌ FAILURE: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                mimeType: 'text/html',
-                body: """\
-                <p>Uh oh...</p>
-                <p>Build <b>${env.JOB_NAME} #${env.BUILD_NUMBER}</b> failed.</p>
-                <p>Check logs: <a href="${env.BUILD_URL}">${env.BUILD_URL}</a></p>
-                """
+                to: 'EMAIL_TO_PLACEHOLDER',
+                subject: "❌ FAILURE: ${APP_NAME} Build #${BUILD_NUMBER}",
+                body: "The pipeline for ${APP_NAME} failed. Please check the Jenkins logs."
             )
         }
     }
 }
-
