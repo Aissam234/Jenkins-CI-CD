@@ -1,6 +1,8 @@
 pipeline {
     agent any
-
+    triggers {
+        cron('H/5 * * * *') // run every 5 minutes
+     }
     environment {
         APP_NAME = "python-ci-app"
         PYTHON = "python3"
