@@ -34,11 +34,16 @@ pipeline {
         }
 
         stage('Run Tests') {
- 	   parallel {
-       		 stage('Test File 1') {
-            		steps {
-               		 echo 'Running test_app.py...'	
-			 sh '''
+    when {
+        not {
+            changeset "**/README.md"
+        }
+    }
+    parallel {
+        stage('Test File 1') {
+            steps {
+                echo 'Running test_app.py...'
+                sh '''
                     set -e
                     . ${VENV_DIR}/bin/activate
                     pytest test_app.py --maxfail=1 --disable-warnings -q
