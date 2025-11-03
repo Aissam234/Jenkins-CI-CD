@@ -34,15 +34,30 @@ pipeline {
         }
 
         stage('Run Tests') {
-            steps {
-                echo 'Running unit tests...'
-                sh '''
+ 	   parallel {
+       		 stage('Test File 1') {
+            		steps {
+               		 echo 'Running test_app.py...'	
+			 sh '''
                     set -e
                     . ${VENV_DIR}/bin/activate
-                    pytest --maxfail=1 --disable-warnings -q || exit 1
+                    pytest test_app.py --maxfail=1 --disable-warnings -q
                 '''
             }
         }
+
+        stage('Test File 2') {
+            steps {
+                echo 'Running test_app_2.py...'
+                sh '''
+                    set -e
+                    . ${VENV_DIR}/bin/activate
+                    pytest test_app_2.py --maxfail=1 --disable-warnings -q
+                '''
+            }
+        }
+    }
+}
 
         stage('Deploy (Local with Gunicorn)') {
             steps {
