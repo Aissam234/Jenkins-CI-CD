@@ -1,0 +1,1 @@
+verifie the trrigers 
