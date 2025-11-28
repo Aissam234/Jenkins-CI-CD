@@ -38,20 +38,71 @@ pipeline {
                 }
             }
             parallel {
-                stage('Test File 1') {
+                // Option pour arrêter tous les tests si un échoue
+                failFast false
+                
+                stage('Test File 1 - Unit Tests') {
                     steps {
+                        script {
+                            echo '🧪 Running Unit Tests (test_app.py)...'
+                        }
                         bat """
                         call ${VENV_DIR}\\Scripts\\activate
-                        python -m pytest test_app.py -v
+                        python -m pytest test_app.py -v --junitxml=test-results-1.xml
                         """
                     }
+                    post {
+                        always {
+                            junit 'test-results-1.xml'
+                        }
+                        success {
+                            echo '✅ Unit Tests passed!'
+                        }
+                        failure {
+                            echo '❌ Unit Tests failed!'
+                        }
+                    }
                 }
-                stage('Test File 2') {
+                
+                stage('Test File 2 - Integration Tests') {
                     steps {
+                        script {
+                            echo '🧪 Running Integration Tests (test_app_2.py)...'
+                        }
                         bat """
                         call ${VENV_DIR}\\Scripts\\activate
-                        python -m pytest test_app_2.py -v
+                        python -m pytest test_app_2.py -v --junitxml=test-results-2.xml
                         """
+                    }
+                    post {
+                        always {
+                            junit 'test-results-2.xml'
+                        }
+                        success {
+                            echo '✅ Integration Tests passed!'
+                        }
+                        failure {
+                            echo '❌ Integration Tests failed!'
+                        }
+                    }
+                }
+                
+                stage('Code Coverage') {
+                    steps {
+                        script {
+                            echo '📊 Generating Code Coverage Report...'
+                        }
+                        bat """
+                        call ${VENV_DIR}\\Scripts\\activate
+                        python -m pytest --cov=app --cov-report=html --cov-report=xml
+                        """
+                    }
+                    post {
+                        success {
+                            echo '✅ Coverage report generated!'
+                            // Publier le rapport de couverture si le plugin est installé
+                            // publishHTML(target: [reportDir: 'htmlcov', reportFiles: 'index.html', reportName: 'Coverage Report'])
+                        }
                     }
                 }
             }
