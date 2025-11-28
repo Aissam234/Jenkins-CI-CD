@@ -38,8 +38,6 @@ pipeline {
                 }
             }
             parallel {
-                // Option pour arrêter tous les tests si un échoue
-                failFast false
                 
                 stage('Test File 1 - Unit Tests') {
                     steps {
