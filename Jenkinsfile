@@ -83,9 +83,9 @@ pipeline {
 
         failure {
             emailext(
-                to: "EMAIL_TO_PLACEHOLDER",
-                from: "EMAIL_FROM_PLACEHOLDER",
-                replyTo: "EMAIL_REPLY_PLACEHOLDER",
+                to: "issamlakhyari452@gmail.com",
+                from: "issamlakhyari452@gmail.com",
+                replyTo: "issamlakhyari452@gmail.com",
                 subject: "❌ FAILURE: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
                 mimeType: 'text/html',
                 body: """\
